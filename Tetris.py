@@ -30,9 +30,9 @@ block_size = 30  # size of block
 top_left_x = (s_width - play_width) // 2
 top_left_y = s_height - play_height - 50
 
-filepath = '/Users/rajat/PycharmProjects/Tetris/highscore.txt'
-fontpath = '/Users/rajat/PycharmProjects/Tetris/arcade.ttf'
-fontpath_mario = '/Users/rajat/PycharmProjects/Tetris/mario.ttf'
+filepath = './highscore.txt'
+fontpath = './arcade.ttf'
+fontpath_mario = './mario.ttf'
 
 # shapes formats
 
@@ -369,7 +369,7 @@ def get_max_score():
 
 def main(window):
     locked_positions = {}
-    create_grid(locked_positions)
+    #create_grid(locked_positions)
 
     change_piece = False
     run = True
@@ -381,6 +381,7 @@ def main(window):
     level_time = 0
     score = 0
     last_score = get_max_score()
+    paused = False
 
     while run:
         # need to constantly make new grid as locked positions always change
@@ -393,49 +394,64 @@ def main(window):
 
         clock.tick()  # updates clock
 
-        if level_time/1000 > 5:    # make the difficulty harder every 10 seconds
-            level_time = 0
-            if fall_speed > 0.15:   # until fall speed is 0.15
-                fall_speed -= 0.005
+        if not paused:
+            if level_time/1000 > 5:    # make the difficulty harder every 10 seconds
+                level_time = 0
+                if fall_speed > 0.15:   # until fall speed is 0.15
+                    fall_speed -= 0.005
 
-        if fall_time / 1000 > fall_speed:
-            fall_time = 0
-            current_piece.y += 1
-            if not valid_space(current_piece, grid) and current_piece.y > 0:
-                current_piece.y -= 1
-                # since only checking for down - either reached bottom or hit another piece
-                # need to lock the piece position
-                # need to generate new piece
-                change_piece = True
+            if fall_time / 1000 > fall_speed:
+                fall_time = 0
+                current_piece.y += 1
+                if not valid_space(current_piece, grid) and current_piece.y > 0:
+                    current_piece.y -= 1
+                    # since only checking for down - either reached bottom or hit another piece
+                    # need to lock the piece position
+                    # need to generate new piece
+                    change_piece = True
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 pygame.display.quit()
                 quit()
-
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    current_piece.x -= 1  # move x position left
-                    if not valid_space(current_piece, grid):
-                        current_piece.x += 1
-
-                elif event.key == pygame.K_RIGHT:
-                    current_piece.x += 1  # move x position right
-                    if not valid_space(current_piece, grid):
-                        current_piece.x -= 1
-
-                elif event.key == pygame.K_DOWN:
-                    # move shape down
+            # pause the game
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN \
+                    or event.type == pygame.JOYBUTTONDOWN and event.button == 7:
+                paused = not paused
+            # move x position left
+            elif not paused and \
+                    (event.type == pygame.KEYDOWN and event.key in [pygame.K_LEFT, pygame.K_a] \
+                     or event.type == pygame.JOYHATMOTION and event.value[0] == -1):
+                current_piece.x -= 1
+                if not valid_space(current_piece, grid):
+                    current_piece.x += 1
+            # move x position right
+            elif not paused and \
+                    (event.type == pygame.KEYDOWN and event.key in [pygame.K_RIGHT, pygame.K_d] \
+                     or event.type == pygame.JOYHATMOTION and event.value[0] == 1):
+                current_piece.x += 1
+                if not valid_space(current_piece, grid):
+                    current_piece.x -= 1
+            # move shape down to the bottom
+            elif not paused and \
+                    (event.type == pygame.KEYDOWN and event.key in [pygame.K_DOWN, pygame.K_SPACE, pygame.K_s] \
+                     or event.type == pygame.JOYHATMOTION and event.value[1] == -1):
+                #current_piece.y += 1
+                #if not valid_space(current_piece, grid):
+                #    current_piece.y -= 1
+                while valid_space(current_piece, grid):
                     current_piece.y += 1
-                    if not valid_space(current_piece, grid):
-                        current_piece.y -= 1
-
-                elif event.key == pygame.K_UP:
-                    # rotate shape
-                    current_piece.rotation = current_piece.rotation + 1 % len(current_piece.shape)
-                    if not valid_space(current_piece, grid):
-                        current_piece.rotation = current_piece.rotation - 1 % len(current_piece.shape)
+                current_piece.y -= 1
+                change_piece = True
+            # rotate shape
+            elif not paused and \
+                    (event.type == pygame.KEYDOWN and event.key in [pygame.K_UP, pygame.K_w] \
+                     or event.type == pygame.JOYHATMOTION and event.value[1] == 1 \
+                     or event.type == pygame.JOYBUTTONDOWN):
+                current_piece.rotation = current_piece.rotation + 1 % len(current_piece.shape)
+                if not valid_space(current_piece, grid):
+                    current_piece.rotation = current_piece.rotation - 1 % len(current_piece.shape)
 
         piece_pos = convert_shape_format(current_piece)
 
@@ -460,6 +476,8 @@ def main(window):
 
         draw_window(window, grid, score, last_score)
         draw_next_shape(next_piece, window)
+        if paused:
+            draw_text_middle('Paused', 50, (255, 255, 255), window)
         pygame.display.update()
 
         if check_lost(locked_positions):
@@ -468,7 +486,10 @@ def main(window):
     draw_text_middle('You Lost', 40, (255, 255, 255), window)
     pygame.display.update()
     pygame.time.delay(2000)  # wait for 2 seconds
-    pygame.quit()
+    # redraw the board(clear out 'You Lost')
+    draw_window(window, grid, score, last_score)
+    draw_next_shape(next_piece, window)
+    #pygame.quit()
 
 
 def main_menu(window):
@@ -480,8 +501,11 @@ def main_menu(window):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            elif event.type == pygame.KEYDOWN:
+            elif event.type in [pygame.KEYDOWN, pygame.JOYHATMOTION, pygame.JOYBUTTONDOWN]:
                 main(window)
+                # TODO: it's found that sometimes there's an unexpected ESCAPE(scancode 81) key event passed after game failure
+                draw_text_middle('Press any key to begin', 50, (255, 255, 255), window)
+                pygame.display.update()
 
     pygame.quit()
 
@@ -489,5 +513,8 @@ def main_menu(window):
 if __name__ == '__main__':
     win = pygame.display.set_mode((s_width, s_height))
     pygame.display.set_caption('Tetris')
+    pygame.key.set_repeat(130)
+    pygame.joystick.init()
+    joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
 
     main_menu(win)  # start game
