@@ -419,39 +419,37 @@ def main(window):
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN \
                     or event.type == pygame.JOYBUTTONDOWN and event.button == 7:
                 paused = not paused
-            # move x position left
-            elif not paused and \
-                    (event.type == pygame.KEYDOWN and event.key in [pygame.K_LEFT, pygame.K_a] \
-                     or event.type == pygame.JOYHATMOTION and event.value[0] == -1):
-                current_piece.x -= 1
-                if not valid_space(current_piece, grid):
-                    current_piece.x += 1
-            # move x position right
-            elif not paused and \
-                    (event.type == pygame.KEYDOWN and event.key in [pygame.K_RIGHT, pygame.K_d] \
-                     or event.type == pygame.JOYHATMOTION and event.value[0] == 1):
-                current_piece.x += 1
-                if not valid_space(current_piece, grid):
+
+            elif not paused:
+                # move x position left
+                if event.type == pygame.KEYDOWN and event.key in [pygame.K_LEFT, pygame.K_a] \
+                        or event.type == pygame.JOYHATMOTION and event.value[0] == -1:
                     current_piece.x -= 1
-            # move shape down to the bottom
-            elif not paused and \
-                    (event.type == pygame.KEYDOWN and event.key in [pygame.K_DOWN, pygame.K_SPACE, pygame.K_s] \
-                     or event.type == pygame.JOYHATMOTION and event.value[1] == -1):
-                #current_piece.y += 1
-                #if not valid_space(current_piece, grid):
-                #    current_piece.y -= 1
-                while valid_space(current_piece, grid):
-                    current_piece.y += 1
-                current_piece.y -= 1
-                change_piece = True
-            # rotate shape
-            elif not paused and \
-                    (event.type == pygame.KEYDOWN and event.key in [pygame.K_UP, pygame.K_w] \
-                     or event.type == pygame.JOYHATMOTION and event.value[1] == 1 \
-                     or event.type == pygame.JOYBUTTONDOWN):
-                current_piece.rotation = current_piece.rotation + 1 % len(current_piece.shape)
-                if not valid_space(current_piece, grid):
-                    current_piece.rotation = current_piece.rotation - 1 % len(current_piece.shape)
+                    if not valid_space(current_piece, grid):
+                        current_piece.x += 1
+                # move x position right
+                elif event.type == pygame.KEYDOWN and event.key in [pygame.K_RIGHT, pygame.K_d] \
+                        or event.type == pygame.JOYHATMOTION and event.value[0] == 1:
+                    current_piece.x += 1
+                    if not valid_space(current_piece, grid):
+                        current_piece.x -= 1
+                # move shape down to the bottom
+                elif event.type == pygame.KEYDOWN and event.key in [pygame.K_DOWN, pygame.K_SPACE, pygame.K_s] \
+                        or event.type == pygame.JOYHATMOTION and event.value[1] == -1:
+                    #current_piece.y += 1
+                    #if not valid_space(current_piece, grid):
+                    #    current_piece.y -= 1
+                    while valid_space(current_piece, grid):
+                        current_piece.y += 1
+                    current_piece.y -= 1
+                    change_piece = True
+                # rotate shape
+                elif event.type == pygame.KEYDOWN and event.key in [pygame.K_UP, pygame.K_w] \
+                        or event.type == pygame.JOYHATMOTION and event.value[1] == 1 \
+                        or event.type == pygame.JOYBUTTONDOWN:
+                    current_piece.rotation = current_piece.rotation + 1 % len(current_piece.shape)
+                    if not valid_space(current_piece, grid):
+                        current_piece.rotation = current_piece.rotation - 1 % len(current_piece.shape)
 
         piece_pos = convert_shape_format(current_piece)
 
@@ -489,23 +487,22 @@ def main(window):
     # redraw the board(clear out 'You Lost')
     draw_window(window, grid, score, last_score)
     draw_next_shape(next_piece, window)
+    # TODO: it's found that sometimes there's an unexpected ESCAPE(scancode 81) key event passed after game failure
+    pygame.event.clear()
     #pygame.quit()
 
 
 def main_menu(window):
-    run = True
-    while run:
+    while True:
         draw_text_middle('Press any key to begin', 50, (255, 255, 255), window)
         pygame.display.update()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-            elif event.type in [pygame.KEYDOWN, pygame.JOYHATMOTION, pygame.JOYBUTTONDOWN]:
-                main(window)
-                # TODO: it's found that sometimes there's an unexpected ESCAPE(scancode 81) key event passed after game failure
-                draw_text_middle('Press any key to begin', 50, (255, 255, 255), window)
-                pygame.display.update()
+        event = pygame.event.wait()
+        if event.type == pygame.QUIT:
+            run = False
+            break
+        elif event.type in [pygame.KEYDOWN, pygame.JOYHATMOTION, pygame.JOYBUTTONDOWN]:
+            main(window)
 
     pygame.quit()
 
